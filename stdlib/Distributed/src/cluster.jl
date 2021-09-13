@@ -95,6 +95,7 @@ end
 @enum WorkerState W_CREATED W_CONNECTED W_TERMINATING W_TERMINATED
 mutable struct Worker
     id::Int
+    msg_lock::Threads.ReentrantLock # Lock for del_msgs, add_msgs, and gcflag
     del_msgs::Array{Any,1}
     add_msgs::Array{Any,1}
     gcflag::Bool
@@ -133,7 +134,7 @@ mutable struct Worker
         if haskey(map_pid_wrkr, id)
             return map_pid_wrkr[id]
         end
-        w=new(id, [], [], false, W_CREATED, Condition(), time(), conn_func)
+        w=new(id, Threads.ReentrantLock(), [], [], false, W_CREATED, Condition(), time(), conn_func)
         w.initialized = Event()
         register_worker(w)
         w
@@ -471,6 +472,10 @@ function addprocs_locked(manager::ClusterManager; kwargs...)
     # The `launch` method should add an object of type WorkerConfig for every
     # worker launched. It provides information required on how to connect
     # to it.
+
+    # FIXME: launched should be a Channel, launch_ntfy should be a Threads.Condition
+    # but both are part of the public interface. This means we currently can't use
+    # `Threads.@spawn` in the code below.
     launched = WorkerConfig[]
     launch_ntfy = Condition()
 
