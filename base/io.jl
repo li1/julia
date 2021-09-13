@@ -1070,6 +1070,7 @@ function iterate(r::Iterators.Reverse{<:EachLine})
                 # found newline at end of file … keep looking
                 jnewline = inewline
                 inewline = something(findprev(==(UInt8('\n')), chunk, inewline-1), 0)
+                inewline > 0 && break
             else
                 break
             end
