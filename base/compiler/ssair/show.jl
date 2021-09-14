@@ -377,17 +377,25 @@ function DILineInfoPrinter(linetable::Vector, showtypes::Bool=false)
             update_line_only::Bool = false
             if collapse
                 if nctx > 0
-                    # check if we're adding more frames with the same method name,
-                    # if so, drop all existing calls to it from the top of the context
-                    # AND check if instead the context was previously printed that way
-                    # but now has removed the recursive frames
-                    let method = method_name(context[nctx])
-                        if (nctx < nframes && method_name(DI[nframes - nctx]) === method) ||
-                           (nctx < length(context) && method_name(context[nctx + 1]) === method)
-                            update_line_only = true
+                    if nctx < nframes
+                        # check if we're adding more frames with the same method name,
+                        # if so, drop all existing calls to it from the top of the context
+                        let method = method_name(DI[nframes - nctx])
+                            if nctx < length(context) && method_name(context[nctx + 1]) === method
+                                update_line_only = true
+                            end
                             while nctx > 0 && method_name(context[nctx]) === method
+                                update_line_only = true
                                 nctx -= 1
                             end
+                        end
+                    elseif nctx < length(context)
+                        # OR check if instead the context was previously printed that way
+                        # but now has removed the recursive frames
+                        method = method_name(context[nctx + 1])
+                        while nctx > 0 && method_name(context[nctx]) === method
+                            update_line_only = true
+                            nctx -= 1
                         end
                     end
                 elseif length(context) > 0

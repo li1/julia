@@ -227,13 +227,21 @@ void DILineInfoPrinter::emit_lineinfo(raw_ostream &Out, std::vector<DILineInfo> 
         if (nctx > 0) {
             // check if we're adding more frames with the same method name,
             // if so, drop all existing calls to it from the top of the context
-            // AND check if instead the context was previously printed that way
-            // but now has removed the recursive frames
-            StringRef method = StringRef(context.at(nctx - 1).FunctionName).rtrim(';');
-            if ((nctx < nframes && StringRef(DI.at(nframes - nctx - 1).FunctionName).rtrim(';') == method) ||
-                (nctx < context.size() && StringRef(context.at(nctx).FunctionName).rtrim(';') == method)) {
-                update_line_only = true;
+            if (nctx < nframes) {
+                StringRef method = StringRef(DI.at(nframes - 1 - nctx).FunctionName).rtrim(';');
+                if (nctx < context.size() && StringRef(context.at(nctx).FunctionName).rtrim(';') == method)
+                    update_line_only = true;
                 while (nctx > 0 && StringRef(context.at(nctx - 1).FunctionName).rtrim(';') == method) {
+                    update_line_only = true;
+                    nctx -= 1;
+                }
+            }
+            // OR check if instead the context was previously printed that way
+            // but now has removed the recursive frames
+            else if (nctx < context.size()) {
+                StringRef method = StringRef(context.at(nctx).FunctionName).rtrim(';');
+                while (nctx > 0 && StringRef(context.at(nctx - 1).FunctionName).rtrim(';') == method) {
+                    update_line_only = true;
                     nctx -= 1;
                 }
             }
